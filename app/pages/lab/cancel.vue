@@ -13,14 +13,19 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const appliedQuery = ref("");
 
+// 进入页面时, 若存在 ?q= 则初始化搜索框框
+const route = useRoute();
+const query = (route.query.q as string | undefined) ?? "";
+
 let controller: AbortController | null = null;
 
-async function onSearch(qRaw: string) {
+async function onSearch(q: string) {
+    console.log("[cancel] onSearch", { q });
+
     // 开始搜索先清空已应用搜索词, 避免展示上一次的高亮
     appliedQuery.value = "";
 
     // 空查询直接返回
-    const q = qRaw.trim();
     if (!q) {
         results.value = [];
         error.value = null;
@@ -58,7 +63,7 @@ async function onSearch(qRaw: string) {
 
 <template>
     <main class="container">
-        <SearchBox @search="onSearch" />
+        <SearchBox @search="onSearch" :initial="query" />
         <div class="status" v-if="loading">正在搜索...</div>
         <div class="status error" v-else-if="error">{{ error }}</div>
         <SearchResults v-else :results="results" :query="appliedQuery" />

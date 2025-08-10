@@ -6,14 +6,16 @@
  * - 支持禁用态: 当为 true 时禁止提交与输入.
  */
 
-const props = defineProps<{ disabled?: boolean }>();
+const props = withDefaults(defineProps<{ disabled?: boolean; initial?: string }>(), {
+    initial: "",
+});
 
 const emit = defineEmits<{ (e: "search", q: string): void }>();
 
 // 输入框的值
-const query = ref("");
+const query = ref(props.initial);
 // 记录上一次触发的查询词 (规范化后)
-let lastEmittedQuery = "";
+let lastEmittedQuery: string | undefined = undefined;
 
 function triggerSearch() {
     // 禁用态直接返回
@@ -22,14 +24,19 @@ function triggerSearch() {
     // 规范化查询词
     const normalized = query.value.trim();
 
-    // 若与上次一致则忽略
+    // 若与上次一致, 则忽略
     if (normalized === lastEmittedQuery) return;
 
-    // 发出搜索事件
+    // 发出搜索事件, 传入规范化后的查询词
     emit("search", normalized);
 
     // 记录最近一次的查询
     lastEmittedQuery = normalized;
+}
+
+// 如果初始值不为空, 则触发一次搜索
+if (props.initial !== "") {
+    triggerSearch();
 }
 </script>
 

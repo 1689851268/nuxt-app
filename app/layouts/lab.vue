@@ -6,6 +6,7 @@
     <div>
         <header class="bar">
             <nav class="nav">
+                <NuxtLink to="/home" class="link">Home</NuxtLink>
                 <NuxtLink to="/lab/disable" class="link">方案1: 禁用按钮</NuxtLink>
                 <NuxtLink to="/lab/cancel" class="link">方案2: 取消上一次请求</NuxtLink>
                 <NuxtLink to="/" class="link">回到首页</NuxtLink>
