@@ -12,12 +12,17 @@ const results = ref<SearchResult[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const appliedQuery = ref("");
+const hasMore = ref(false);
+const loadingMore = ref(false);
 
 // 进入页面时, 若存在 ?q= 则初始化搜索框框
 const route = useRoute();
 const query = (route.query.q as string | undefined) ?? "";
 
 let controller: AbortController | null = null;
+
+// 全局已见 ID 列表缓存
+const seenIds = new Set<string>();
 
 async function onSearch(q: string) {
     console.log("[cancel] onSearch", { q });
@@ -32,6 +37,9 @@ async function onSearch(q: string) {
         return;
     }
 
+    // 用户触发新搜索时重置去重列表
+    seenIds.clear();
+
     // 取消上一次请求, 确保只有最后一次有效
     if (controller) {
         controller.abort("replaced-by-new-search");
@@ -42,11 +50,19 @@ async function onSearch(q: string) {
     loading.value = true;
     error.value = null;
     try {
-        const res = await $fetch<SearchResult[]>("/api/search", { query: { q }, signal: controller.signal });
+        const seenArr = Array.from(seenIds);
+        const res = await $fetch<SearchResult[]>("/api/search", {
+            query: { q, seen: seenArr },
+            signal: controller.signal,
+        });
         if (controller === current) {
             results.value = res ?? [];
             // 搜索成功后再应用当前搜索词用于高亮
             appliedQuery.value = q;
+            // 合并已见 ID (全局)
+            for (const item of res ?? []) seenIds.add(item.id);
+            // 判断是否还有更多: 若本次返回已达上限 5, 可能仍有剩余
+            hasMore.value = (res?.length ?? 0) === 5;
         }
     } catch (_e) {
         if (controller === current) {
@@ -59,6 +75,24 @@ async function onSearch(q: string) {
         }
     }
 }
+
+async function loadMore() {
+    const q = appliedQuery.value;
+    if (!q || loading.value || loadingMore.value) return;
+    loadingMore.value = true;
+    try {
+        const seenArr = Array.from(seenIds);
+        const res = await $fetch<SearchResult[]>("/api/search", { query: { q, seen: seenArr } });
+        const list = res ?? [];
+        results.value = [...results.value, ...list];
+        for (const item of list) seenIds.add(item.id);
+        hasMore.value = list.length === 5;
+    } catch (_e) {
+        // 忽略 load more 错误, 也可按需提示
+    } finally {
+        loadingMore.value = false;
+    }
+}
 </script>
 
 <template>
@@ -66,7 +100,14 @@ async function onSearch(q: string) {
         <SearchBox @search="onSearch" :initial="query" />
         <div class="status" v-if="loading">正在搜索...</div>
         <div class="status error" v-else-if="error">{{ error }}</div>
-        <SearchResults v-else :results="results" :query="appliedQuery" />
+        <SearchResults
+            v-else
+            :results="results"
+            :query="appliedQuery"
+            :has-more="hasMore"
+            :loading-more="loadingMore"
+            @load-more="loadMore"
+        />
     </main>
 </template>
 

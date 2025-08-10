@@ -9,7 +9,11 @@ type SearchResult = {
 const props = defineProps<{
     results: SearchResult[];
     query: string;
+    hasMore?: boolean;
+    loadingMore?: boolean;
 }>();
+
+const emit = defineEmits<{ (e: "load-more"): void }>();
 
 /**
  * HTML-escape 可见文本 (defensive encoding).
@@ -79,6 +83,12 @@ function highlight(text: string): string {
                     <p v-html="highlight(item.summary)"></p>
                 </div>
             </article>
+            <div class="more">
+                <button v-if="props.hasMore" class="more-btn" :disabled="props.loadingMore" @click="emit('load-more')">
+                    {{ props.loadingMore ? "加载中..." : "加载更多" }}
+                </button>
+                <div v-else-if="results.length" class="no-more">没有更多了</div>
+            </div>
         </div>
     </div>
 </template>
@@ -120,6 +130,25 @@ function highlight(text: string): string {
     min-width: 0;
 }
 .empty {
+    color: #888;
+}
+.more {
+    padding: 12px 0 4px;
+    display: flex;
+    justify-content: center;
+}
+.more-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #0ea5e9;
+    background: #0ea5e9;
+    color: #fff;
+}
+.more-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.no-more {
     color: #888;
 }
 mark {
