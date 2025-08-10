@@ -6,14 +6,12 @@
  * - 支持禁用态: 当为 true 时禁止提交与输入.
  */
 
-const props = withDefaults(defineProps<{ disabled?: boolean; initial?: string }>(), {
-    initial: "",
-});
+const props = defineProps<{ disabled?: boolean; initial?: string }>();
 
 const emit = defineEmits<{ (e: "search", q: string): void }>();
 
 // 输入框的值
-const query = ref(props.initial);
+const query = ref("");
 // 记录上一次触发的查询词 (规范化后)
 let lastEmittedQuery: string | undefined = undefined;
 
@@ -34,8 +32,8 @@ function triggerSearch() {
     lastEmittedQuery = normalized;
 }
 
-// 如果初始值不为空, 则触发一次搜索
-if (props.initial !== "") {
+if (props.initial !== undefined) {
+    query.value = props.initial;
     triggerSearch();
 }
 </script>
